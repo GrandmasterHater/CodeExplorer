@@ -7,7 +7,6 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.usage import UsageLimits
 
 from .infrastructure.code_graph_provider import ErrorResult, explore_in_graph
 from .infrastructure.semantic_provider import SearchHit, SemanticProvider
@@ -19,12 +18,6 @@ _SEARCH_TIMOUT_SECONDS = 120
 class Dependencies:
     project_dir: Path
     semantic_provider: SemanticProvider
-    # read_source проверяет принадлежность пути этому множеству.
-    # Множество должен заранее подготовить вызывающий код.
-    #
-    # Для корректного сравнения записи должны соответствовать
-    # формату, который ниже возвращает relative_to(root).as_posix().
-    readable_files: frozenset[str]
 
 
 # Ссылка на источник, который использован в ответе.
@@ -128,38 +121,3 @@ def create_agent(model: str) -> Agent[Dependencies, Answer]:
     agent.tool(read_source)
 
     return agent
-
-
-# Удобная обёртка для одного запуска агента.
-async def ask(
-    agent: Agent[Dependencies, Answer],
-    deps: Dependencies,
-    question: str,
-) -> Answer:
-    # Запускаем агент и ждём завершения.
-    #
-    # Во время запуска модель может:
-    # 1. Получить вопрос и инструкции.
-    # 2. Запросить вызовы инструментов.
-    # 3. Получить результаты инструментов.
-    # 4. Сделать следующие запросы или сформировать Answer.
-    result = await agent.run(
-        question,
-
-        # Эти зависимости станут доступны инструментам через ctx.deps.
-        deps=deps,
-
-        usage_limits=UsageLimits(
-            # Не более 8 запросов к языковой модели за запуск.
-            # Это не число вопросов пользователя и не число инструментов.
-            request_limit=8,
-
-            # Предел учитываемых библиотекой вызовов инструментов.
-            # Один ответ модели может содержать несколько таких вызовов.
-            tool_calls_limit=12,
-        ),
-    )
-
-    # result содержит результат запуска и сопутствующие данные.
-    # output — непосредственно проверенный итоговый объект Answer.
-    return result.output
