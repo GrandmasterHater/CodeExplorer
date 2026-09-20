@@ -7,6 +7,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.models import Model
 
 from .infrastructure.code_graph_provider import ErrorResult, explore_in_graph
 from .infrastructure.semantic_provider import SearchHit, SemanticProvider
@@ -64,7 +65,7 @@ Tool errors are not evidence that an implementation does not exist.
 """
 
 
-def create_agent(model: str) -> Agent[Dependencies, Answer]:
+def create_agent(model: str | Model) -> Agent[Dependencies, Answer]:
     agent = Agent(model, deps_type=Dependencies, output_type=Answer, instructions=INSTRUCTIONS)
 
     async def semantic_search(ctx: RunContext[Dependencies], query: str, limit: int = 5,) -> list[SearchHit] | tuple[str, str]:

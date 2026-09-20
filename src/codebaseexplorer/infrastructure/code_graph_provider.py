@@ -4,7 +4,7 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable  # noqa: UP035
+from typing import Callable
 
 _CODEGRAPH_NAME = "codegraph"
 _CODEGRAPH_CMD_NAME = "codegraph.cmd"
