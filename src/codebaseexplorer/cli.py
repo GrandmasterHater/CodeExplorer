@@ -16,12 +16,11 @@ from pydantic_ai.messages import (
     ToolCallPart,
     ToolReturnPart,
 )
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.profiles.openai import OpenAIModelProfile
-from pydantic_ai.providers.openai import OpenAIProvider
-from pydantic_ai.usage import UsageLimits
+from pydantic_ai.models.ollama import OllamaModel
+from pydantic_ai.providers.ollama import OllamaProvider
+from pydantic_ai.usage import RunUsage, UsageLimits
 
-from .agent import Dependencies, create_agent
+from .agent import Dependencies, create_agent, create_answer_agent
 from .infrastructure.ollama_client import CHAT_MODEL, EMBEDDING_MODEL, Ollama
 from .infrastructure.semantic_provider import LocalSemanticProvider
 from .initializer.indexer import build_index
@@ -122,34 +121,52 @@ async def run(args: argparse.Namespace) -> None:
 
                 return
 
-            model = OpenAIChatModel(
+            model = OllamaModel(
                 args.chat_model,
-                provider=OpenAIProvider(
+                provider=OllamaProvider(
                     base_url=f"{args.ollama.rstrip('/')}/v1",
-                    api_key="ollama",
-                ),
-                profile=OpenAIModelProfile(
-                    openai_supports_strict_tool_definition=False,
-                    openai_chat_supports_max_completion_tokens=False,
                 ),
             )
 
             agent = create_agent(model)
+            usage = RunUsage()
 
             with capture_run_messages() as messages:
                 try:
-                    result = await agent.run(
+                    evidence = await agent.run(
                         args.query,
                         deps=Dependencies(
                             project_dir=root,
                             semantic_provider=provider,
                         ),
+                        # Reserve two of the eight requests for the structured answer.
+                        usage=usage,
                         usage_limits=UsageLimits(
-                            request_limit=8,
+                            request_limit=6,
                             tool_calls_limit=12,
                         ),
                         model_settings={
                             "temperature": 0.1,
+                            "max_tokens": 2000,
+                            "timeout": 180.0,
+                        },
+                    )
+                except (UsageLimitExceeded, UnexpectedModelBehavior) as exc:
+                    print_run_trace(messages)
+                    if exc.__cause__ is not None:
+                        print(f"Cause: {str(exc.__cause__)[:2000]}", file=sys.stderr)
+                    raise
+
+            answer_agent = create_answer_agent(model)
+            with capture_run_messages() as messages:
+                try:
+                    result = await answer_agent.run(
+                        args.query,
+                        message_history=evidence.all_messages(),
+                        usage=usage,
+                        usage_limits=UsageLimits(request_limit=8, tool_calls_limit=12),
+                        model_settings={
+                            "temperature": 0,
                             "max_tokens": 2000,
                             "timeout": 180.0,
                         },
