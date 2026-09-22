@@ -4,12 +4,12 @@ import hashlib
 import json
 from pathlib import Path
 
+from codebaseexplorer.infrastructure.ollama_client import Ollama
 from codebaseexplorer.infrastructure.semantic_provider import (
     COLLECTION,
-    SearchHit,
     LocalSemanticProvider,
+    SearchHit,
 )
-from codebaseexplorer.infrastructure.ollama_client import Ollama
 
 from .parser import find_code_files, parse_file
 

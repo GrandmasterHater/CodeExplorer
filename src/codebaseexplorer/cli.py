@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
 
     args = parser.parse_args()
 
-    if args.command in {"query"} and not args.query.strip():
+    if args.command in {"search"} and not args.query.strip():
         parser.error("--query is required for search")
 
     return args
@@ -91,7 +91,7 @@ async def run(args: argparse.Namespace) -> None:
         return
 
     if args.command == "index":
-        await _index_cmd(root, args.ollama, args.rebuild)
+        await _index_cmd(root, args.rebuild, args.no_cache)
         return
 
     if args.command == "search":
