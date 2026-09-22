@@ -1,16 +1,33 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from dataclasses import dataclass
 from itertools import islice
 from pathlib import Path
 
+import httpx
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, NativeOutput, RunContext
+from pydantic_ai import Agent, NativeOutput, RunContext, capture_run_messages
+from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.models import Model
+from pydantic_ai.models.ollama import OllamaModel
+from pydantic_ai.providers.ollama import OllamaProvider
+from pydantic_ai.usage import RunUsage, UsageLimits
 
 from .infrastructure.code_graph_provider import ErrorResult, explore_in_graph
-from .infrastructure.semantic_provider import SearchHit, SemanticProvider
+from .infrastructure.ollama_client import (
+    CHAT_MODEL,
+    EMBEDDING_MODEL,
+    OLLAMA_URL,
+    Ollama,
+)
+from .infrastructure.semantic_provider import (
+    LocalSemanticProvider,
+    SearchHit,
+    SemanticProvider,
+)
+from .utils.print_utils import print_run_trace
 
 _SEARCH_TIMOUT_SECONDS = 120
 
@@ -148,3 +165,68 @@ Use empty arrays when there are no sources or limitations to report.
 Do not wrap the JSON in Markdown fences or add prose outside it.
 """,
     )
+
+async def search(query: str, root: Path) -> Answer:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(180.0, connect=10.0),) as http:
+        ollama = Ollama(
+            http,
+            chat_model=CHAT_MODEL,
+            embedding_model=EMBEDDING_MODEL,
+        )
+        provider = LocalSemanticProvider(root, ollama)
+
+        try:
+            model = OllamaModel(CHAT_MODEL,provider=OllamaProvider(base_url=f"{OLLAMA_URL.rstrip('/')}/v1",))
+            agent = create_agent(model)
+            usage = RunUsage()
+
+            with capture_run_messages() as messages:
+                try:
+                    evidence = await agent.run(
+                        query,
+                        deps=Dependencies(
+                            project_dir=root,
+                            semantic_provider=provider,
+                        ),
+                        # Reserve two of the eight requests for the structured answer.
+                        usage=usage,
+                        usage_limits=UsageLimits(
+                            request_limit=6,
+                            tool_calls_limit=12,
+                        ),
+                        model_settings={
+                            "temperature": 0.1,
+                            "max_tokens": 2000,
+                            "timeout": 180.0,
+                        },
+                    )
+                except (UsageLimitExceeded, UnexpectedModelBehavior) as exc:
+                    print_run_trace(messages)
+                    if exc.__cause__ is not None:
+                        Answer(text=f"Cause: {str(exc.__cause__)[:2000]}, \n {sys.stderr}")
+                    raise
+
+            answer_agent = create_answer_agent(model)
+            with capture_run_messages() as messages:
+                try:
+                    result = await answer_agent.run(
+                        query,
+                        message_history=evidence.all_messages(),
+                        usage=usage,
+                        usage_limits=UsageLimits(request_limit=8, tool_calls_limit=12),
+                        model_settings={
+                            "temperature": 0,
+                            "max_tokens": 2000,
+                            "timeout": 180.0,
+                        },
+                    )
+                except (UsageLimitExceeded, UnexpectedModelBehavior) as exc:
+                    print_run_trace(messages)
+                    if exc.__cause__ is not None:
+                        Answer(text=f"Cause: {str(exc.__cause__)[:2000]}, \n {sys.stderr}")
+                    raise
+
+            return result.output
+
+        finally:
+            await provider.close()

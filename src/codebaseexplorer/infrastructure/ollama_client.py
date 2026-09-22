@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 CHAT_MODEL = "qwen3.5-9b-32k:latest"
 EMBEDDING_MODEL = "qwen3-embedding:0.6b"
+OLLAMA_URL = "http://localhost:11434"
 
 
 class LlmResponce(BaseModel):
