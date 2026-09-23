@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Local codebase explorer")
 
     parser.add_argument("command", choices=["index", "search", "mcp"])
-    parser.add_argument("--project", type=Path, required=True)
+    parser.add_argument("--project", type=Path)
     parser.add_argument("--query", default="")
     parser.add_argument("--rebuild", action="store_true")
     parser.add_argument("--no-cache", action="store_true")
@@ -32,6 +32,9 @@ def parse_args() -> argparse.Namespace:
 
     if args.command in {"search"} and not args.query.strip():
         parser.error("--query is required for search")
+
+    if args.command in {"search", "index"} and args.project is None:
+        parser.error("–project is required for index/search")
 
     return args
 
@@ -81,14 +84,14 @@ async def _search_cmd(query: str, root: Path):
 
 
 async def run(args: argparse.Namespace) -> None:
+    if args.command == "mcp":
+        await start_mcp()
+        return
+
     root = args.project.expanduser().resolve()
 
     if not root.is_dir():
         raise ValueError(f"Project directory does not exist: {root}")
-
-    if args.command == "mcp":
-        start_mcp()
-        return
 
     if args.command == "index":
         await _index_cmd(root, args.rebuild, args.no_cache)

@@ -1,0 +1,7 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "deployment.tools",
+  "version": "0.1.0",
+  "description": "Локальный агент для вопросов по кодовой базе.",
+  "repository": "https://github.com/GrandmasterHater/CodeExplorer/tree/main"
+}

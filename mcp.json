@@ -1,0 +1,21 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "codebase-explorer": {
+      "type": "stdio",
+      "command": "uv",
+      "args":  [
+               "--directory",
+               "${PLUGIN_ROOT}",
+               "run",
+               "--locked",
+               "--no-dev",
+               "codebaseexplorer",
+               "mcp"
+             ],
+      "env": {"UV_PROJECT_ENVIRONMENT": "${PLUGIN_DATA}/venv",
+              "UV_CACHE_DIR": "${PLUGIN_DATA}/uv-cache"},
+      "cwd": "${PLUGIN_ROOT}"
+    }
+  }
+}
