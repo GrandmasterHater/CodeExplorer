@@ -7,6 +7,13 @@ resolution-markers = [
     "python_full_version < '3.13'",
 ]
 
+[manifest]
+members = [
+    "codebase-explorer-agent",
+    "codebaseexplorer",
+    "semantic-explorer",
+]
+
 [[package]]
 name = "aiofile"
 version = "3.12.3"
@@ -346,18 +353,33 @@ wheels = [
 ]
 
 [[package]]
+name = "codebase-explorer-agent"
+version = "0.1.0"
+source = { editable = "packages/codebase_explorer_agent" }
+dependencies = [
+    { name = "fastmcp" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "pydantic-ai-slim", extra = ["openai"] },
+    { name = "semantic-explorer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastmcp", specifier = ">=4.0.5" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "pydantic", specifier = ">=2" },
+    { name = "pydantic-ai-slim", extras = ["openai"], specifier = ">=2.44.0" },
+    { name = "semantic-explorer", editable = "packages/semantic_explorer" },
+]
+
+[[package]]
 name = "codebaseexplorer"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "fastmcp" },
-    { name = "httpx" },
-    { name = "pydantic-ai-slim", extra = ["openai"] },
-    { name = "pymonad" },
-    { name = "qdrant-client" },
-    { name = "tree-sitter" },
-    { name = "tree-sitter-c-sharp" },
-    { name = "tree-sitter-java" },
+    { name = "codebase-explorer-agent" },
+    { name = "semantic-explorer" },
 ]
 
 [package.dev-dependencies]
@@ -368,14 +390,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastmcp", specifier = ">=4.0.5" },
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "pydantic-ai-slim", extras = ["openai"], specifier = ">=2.44.0" },
-    { name = "pymonad", specifier = ">=2.4.0" },
-    { name = "qdrant-client", specifier = ">=1.19.1" },
-    { name = "tree-sitter", specifier = ">=0.26.0" },
-    { name = "tree-sitter-c-sharp", specifier = ">=0.23.5" },
-    { name = "tree-sitter-java", specifier = ">=0.23.5" },
+    { name = "codebase-explorer-agent", editable = "packages/codebase_explorer_agent" },
+    { name = "semantic-explorer", editable = "packages/semantic_explorer" },
 ]
 
 [package.metadata.requires-dev]
@@ -1455,15 +1471,6 @@ crypto = [
 ]
 
 [[package]]
-name = "pymonad"
-version = "2.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3b/4e/68803065743007b7dc000c543f45f6e407f8a1cbc673fdab016df3ca4b44/PyMonad-2.4.0.tar.gz", hash = "sha256:6b9d98e40bf2e0f1cc1900309365f9ba4997f3432a1d6e71f80f41ace2890204", size = 22870, upload-time = "2021-05-14T16:44:14.838Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8d/42/461af4ed7ea252b46c53b59f965d5f1eda971eef4d0c12f8320286578bf3/PyMonad-2.4.0-py3-none-any.whl", hash = "sha256:e78d9bf3b0712b165d4f43c29b0c1b23ed3ff11dbae1a6d61402cda7f0827d1a", size = 29141, upload-time = "2021-05-14T16:44:13.269Z" },
-]
-
-[[package]]
 name = "pyperclip"
 version = "1.11.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1877,6 +1884,29 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49a85eaff47340affa3bfa391ee9912a952a1faa68c7b/secretstorage-3.5.0.tar.gz", hash = "sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be", size = 19884, upload-time = "2025-11-23T19:02:53.191Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/46/f5af3402b579fd5e11573ce652019a67074317e18c1935cc0b4ba9b35552/secretstorage-3.5.0-py3-none-any.whl", hash = "sha256:0ce65888c0725fcb2c5bc0fdb8e5438eece02c523557ea40ce0703c266248137", size = 15554, upload-time = "2025-11-23T19:02:51.545Z" },
+]
+
+[[package]]
+name = "semantic-explorer"
+version = "0.1.0"
+source = { editable = "packages/semantic_explorer" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "qdrant-client" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-c-sharp" },
+    { name = "tree-sitter-java" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "pydantic", specifier = ">=2" },
+    { name = "qdrant-client", specifier = ">=1.19.1" },
+    { name = "tree-sitter", specifier = ">=0.26.0" },
+    { name = "tree-sitter-c-sharp", specifier = ">=0.23.5" },
+    { name = "tree-sitter-java", specifier = ">=0.23.5" },
 ]
 
 [[package]]

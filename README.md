@@ -2,6 +2,8 @@
 
 Локальный агент для вопросов по кодовой базе. Индексация поддерживает `.cs` и `.java` (UTF-8).
 
+Реализация разделена на workspace-пакеты: `semantic-explorer` отвечает за парсинг, описания и индекс; `codebase-explorer-agent` — за поиск агентом, CodeGraph и MCP-интерфейс агента. Корневой пакет предоставляет совместимую команду `codebaseexplorer`.
+
 ## Запуск
 
 Установите зависимости через `uv sync`. Запустите Ollama и подготовьте chat-модель с поддержкой инструментов и embedding-модель. По умолчанию используются `qwen3.5-9b-32k:latest` и `qwen3-embedding:0.6b`; обе должны быть доступны в Ollama.
@@ -9,7 +11,7 @@
 ```sh
 uv run codebaseexplorer index --project "C:/Projects/MyProject"
 uv run codebaseexplorer search --project "C:/Projects/MyProject" --query "Где реализована авторизация?"
-uv run codebaseexplorer ask --project "C:/Projects/MyProject" --query "Где определён PaymentService?"
+uv run codebaseexplorer mcp
 ```
 
 - `--ollama URL` — адрес Ollama, по умолчанию `http://localhost:11434`.
@@ -22,6 +24,6 @@ uv run codebaseexplorer ask --project "C:/Projects/MyProject" --query "Где о
 
 ## Формат ответа
 
-`ask` выполняется в два этапа: сбор данных инструментами, затем формирование `Answer` той же моделью без инструментов. Финальный этап получает полную историю с результатами инструментов и использует `NativeOutput(Answer)`: Ollama генерирует JSON по схеме, Pydantic AI валидирует результат. Обычный текст вместо JSON не принимается.
+`search` выполняется в два этапа: сбор данных инструментами, затем формирование `Answer` той же моделью без инструментов. Финальный этап получает полную историю с результатами инструментов и использует `NativeOutput(Answer)`: Ollama генерирует JSON по схеме, Pydantic AI валидирует результат. Обычный текст вместо JSON не принимается.
 
 Для этого нужна локальная/self-hosted Ollama с поддержкой `response_format: json_schema` (v0.5.0+); Ollama Cloud для этого режима не поддерживается. Общий лимит — 8 запросов к модели, из них не более 6 на сбор данных; оставшийся бюджет используется для структурированного ответа. В статистике учитываются оба этапа.

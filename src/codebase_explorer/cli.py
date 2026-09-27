@@ -4,19 +4,9 @@ import argparse
 import asyncio
 from pathlib import Path
 
-import httpx
-
-from .agent import search
-from .infrastructure.ollama_client import (
-    CHAT_MODEL,
-    EMBEDDING_MODEL,
-    OLLAMA_URL,
-    Ollama,
-)
-from .infrastructure.semantic_provider import LocalSemanticProvider
-from .initializer.indexer import build_index
-from .mcp_server import start_mcp
-from .utils.print_utils import print_run_trace
+from codebase_explorer_agent.agent import search
+from codebase_explorer_agent.mcp_server import start_mcp
+from semantic_explorer.indexer import index_project
 
 
 def parse_args() -> argparse.Namespace:
@@ -39,28 +29,9 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-async def _index_cmd(root: Path, is_rebuild: bool, is_no_cache: bool):
-    async with httpx.AsyncClient(timeout=httpx.Timeout(180.0, connect=10.0),) as http:
-        ollama = Ollama(
-            http,
-            base_url=OLLAMA_URL,
-            chat_model=CHAT_MODEL,
-            embedding_model=EMBEDDING_MODEL,
-        )
-        provider = LocalSemanticProvider(root, ollama)
-
-        try:
-            await build_index(
-                root,
-                provider,
-                ollama,
-                rebuild=is_rebuild,
-                no_cache=is_no_cache,
-            )
-            print("Index is ready.")
-            return
-        finally:
-            await provider.close()
+async def _index_cmd(root: Path, is_rebuild: bool, is_no_cache: bool) -> None:
+    await index_project(root, rebuild=is_rebuild, no_cache=is_no_cache)
+    print("Index is ready.")
 
 async def _search_cmd(query: str, root: Path):
     answer = await search(query, root)

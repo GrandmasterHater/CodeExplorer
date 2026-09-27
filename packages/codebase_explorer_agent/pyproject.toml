@@ -1,0 +1,23 @@
+[project]
+name = "codebase-explorer-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "sguschin", email = "sguschin@gear-games.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=4.0.5",
+    "httpx>=0.28.1",
+    "pydantic>=2",
+    "pydantic-ai-slim[openai]>=2.44.0",
+    "semantic-explorer",
+]
+
+[tool.uv.sources]
+semantic-explorer = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.12.13,<0.13.0"]
+build-backend = "uv_build"

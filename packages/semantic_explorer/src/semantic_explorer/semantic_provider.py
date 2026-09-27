@@ -11,7 +11,7 @@ from uuid import NAMESPACE_URL, uuid5
 from pydantic import BaseModel, Field
 from qdrant_client import AsyncQdrantClient, models
 
-from .ollama_client import LlmResponce, Ollama
+from .ollama_client import Ollama
 
 CHAT_MODEL = "qwen3.5-9b-32k:latest"
 EMBEDDING_MODEL = "qwen3-embedding:0.6b"

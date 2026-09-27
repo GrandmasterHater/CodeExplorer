@@ -4,13 +4,10 @@ import hashlib
 import json
 from pathlib import Path
 
-from codebaseexplorer.infrastructure.ollama_client import Ollama
-from codebaseexplorer.infrastructure.semantic_provider import (
-    COLLECTION,
-    LocalSemanticProvider,
-    SearchHit,
-)
+import httpx
 
+from .ollama_client import CHAT_MODEL, EMBEDDING_MODEL, OLLAMA_URL, Ollama
+from .semantic_provider import COLLECTION, LocalSemanticProvider, SearchHit
 from .parser import find_code_files, parse_file
 
 PIPELINE_VERSION = "v1"
@@ -205,3 +202,18 @@ async def build_index(
     # Генерация описаний и embeddings разделены на две последовательные
     # фазы, чтобы не переключать модели после каждого метода.
     await provider.replace(all_records, rebuild=rebuild)
+
+
+async def index_project(root: Path, *, rebuild: bool = False, no_cache: bool = False) -> None:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(180.0, connect=10.0)) as http:
+        ollama = Ollama(
+            http,
+            base_url=OLLAMA_URL,
+            chat_model=CHAT_MODEL,
+            embedding_model=EMBEDDING_MODEL,
+        )
+        provider = LocalSemanticProvider(root, ollama)
+        try:
+            await build_index(root, provider, ollama, rebuild=rebuild, no_cache=no_cache)
+        finally:
+            await provider.close()

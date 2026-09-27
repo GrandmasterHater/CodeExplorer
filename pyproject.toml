@@ -8,25 +8,39 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "fastmcp>=4.0.5",
-    "httpx>=0.28.1",
-    "pydantic-ai-slim[openai]>=2.44.0",
-    "pymonad>=2.4.0",
-    "qdrant-client>=1.19.1",
-    "tree-sitter>=0.26.0",
-    "tree-sitter-c-sharp>=0.23.5",
-    "tree-sitter-java>=0.23.5",
+    "codebase-explorer-agent",
+    "semantic-explorer",
 ]
 
 [project.scripts]
-codebaseexplorer = "codebaseexplorer:main"
+codebaseexplorer = "codebase_explorer:main"
 
 [build-system]
 requires = ["uv_build>=0.12.13,<0.13.0"]
 build-backend = "uv_build"
 
+[tool.uv.build-backend]
+module-name = "codebase_explorer"
+
 [dependency-groups]
 dev = [
     "pyright>=1.1.414",
     "pytest>=9.1.1",
+]
+
+[tool.pyright]
+extraPaths = [
+    "src",
+    "packages/codebase_explorer_agent/src",
+    "packages/semantic_explorer/src",
+]
+
+[tool.uv.sources]
+codebase-explorer-agent = { workspace = true }
+semantic-explorer = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    "packages/semantic_explorer",
+    "packages/codebase_explorer_agent",
 ]

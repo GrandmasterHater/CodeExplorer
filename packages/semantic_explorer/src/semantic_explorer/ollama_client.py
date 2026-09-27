@@ -1,3 +1,5 @@
+from typing import Any
+
 import httpx
 from pydantic import BaseModel, Field, ValidationError
 
@@ -21,7 +23,7 @@ class Ollama:
         self.chat_model = chat_model
         self.embedding_model = embedding_model
 
-    async def _post(self, endpoint: str, payload: dict) -> dict:
+    async def _post(self, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
         try:
             response = await self.http.post(f"{self.base_url}/api/{endpoint}", json=payload)
             response.raise_for_status()
