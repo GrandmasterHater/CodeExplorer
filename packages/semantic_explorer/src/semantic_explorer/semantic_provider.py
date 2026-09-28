@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from functools import reduce
 from pathlib import Path
 
 # Literal ограничивает тип конкретными допустимыми значениями.
@@ -16,7 +15,6 @@ from .ollama_client import Ollama
 CHAT_MODEL = "qwen3.5-9b-32k:latest"
 EMBEDDING_MODEL = "qwen3-embedding:0.6b"
 COLLECTION = "code_semantics_v1"
-
 
 # Один результат семантического поиска.
 class SearchHit(BaseModel):

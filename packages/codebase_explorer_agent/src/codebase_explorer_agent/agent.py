@@ -14,9 +14,17 @@ from pydantic_ai.models import Model
 from pydantic_ai.models.ollama import OllamaModel
 from pydantic_ai.providers.ollama import OllamaProvider
 from pydantic_ai.usage import RunUsage, UsageLimits
-
-from semantic_explorer.ollama_client import CHAT_MODEL, EMBEDDING_MODEL, OLLAMA_URL, Ollama
-from semantic_explorer.semantic_provider import LocalSemanticProvider, SearchHit, SemanticProvider
+from semantic_explorer.ollama_client import (
+    CHAT_MODEL,
+    EMBEDDING_MODEL,
+    OLLAMA_URL,
+    Ollama,
+)
+from semantic_explorer.semantic_provider import (
+    LocalSemanticProvider,
+    SearchHit,
+    SemanticProvider,
+)
 
 from .code_graph_provider import ErrorResult, explore_in_graph
 from .print_utils import print_run_trace
