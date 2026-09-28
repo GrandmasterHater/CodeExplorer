@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Literal, Protocol
 from uuid import NAMESPACE_URL, uuid5
 
+from fastembed import SparseTextEmbedding
 from pydantic import BaseModel, Field
 from qdrant_client import AsyncQdrantClient, models
 
@@ -15,6 +16,7 @@ from .ollama_client import Ollama
 CHAT_MODEL = "qwen3.5-9b-32k:latest"
 EMBEDDING_MODEL = "qwen3-embedding:0.6b"
 COLLECTION = "code_semantics_v1"
+SCHEMA_VERSION = 2
 
 # Один результат семантического поиска.
 class SearchHit(BaseModel):
@@ -48,6 +50,7 @@ class LocalSemanticProvider:
     def __init__(self, project_dir: Path, ollama_client: Ollama) -> None:
         self.project_dir = project_dir.resolve()
         self.ollama_client = ollama_client
+        self.bm25 = SparseTextEmbedding(model_name="Qdrant/bm25")
 
         self.storage_dir = self.project_dir / ".explorer"
         self.storage_dir.mkdir(parents=True, exist_ok=True)
@@ -67,6 +70,9 @@ class LocalSemanticProvider:
         if not metadata.get("ready"):
             return False
 
+        if metadata.get("schema_version") != SCHEMA_VERSION:
+            raise RuntimeError("The index uses an older schema. Use --rebuild to replace it.")
+
         if metadata["embedding_model"] != self.ollama_client.embedding_model:
             raise RuntimeError("The index uses another embedding model. Rebuild the index.")
 
@@ -77,6 +83,7 @@ class LocalSemanticProvider:
             json.dumps(
                 {
                     "ready": ready,
+                    "schema_version": SCHEMA_VERSION,
                     "records": records,
                     "chat_model": self.ollama_client.chat_model,
                     "embedding_model": self.ollama_client.embedding_model,
@@ -91,10 +98,13 @@ class LocalSemanticProvider:
         self,
         records: list[SearchHit],
         *,
+        sparse_texts: list[str],
         rebuild: bool,
     ) -> None:
         if not records:
             raise ValueError("There are no records to index")
+        if len(records) != len(sparse_texts):
+            raise ValueError("Records and sparse texts must have the same length")
 
         collection_exists = await self.qdrant_client.collection_exists(COLLECTION)
 
@@ -115,10 +125,15 @@ class LocalSemanticProvider:
 
         await self.qdrant_client.create_collection(
             collection_name=COLLECTION,
-            vectors_config=models.VectorParams(
-                size=dimension,
-                distance=models.Distance.COSINE,
-            ),
+            vectors_config={
+                "dense": models.VectorParams(
+                    size=dimension,
+                    distance=models.Distance.COSINE,
+                ),
+            },
+            sparse_vectors_config={
+                "sparse": models.SparseVectorParams(modifier=models.Modifier.IDF),
+            },
         )
 
         batch_size = 8
@@ -129,14 +144,21 @@ class LocalSemanticProvider:
                 [embedding_text(record) for record in batch]
             )
 
+            sparse_vectors = self.bm25.embed(sparse_texts[offset : offset + batch_size])
             points = []
-            for record, vector in zip(batch, vectors, strict=True):
+            for record, vector, sparse_vector in zip(batch, vectors, sparse_vectors, strict=True):
                 identity = f"{record.path}:{record.kind}:{record.start_line}:{record.name}"
 
                 points.append(
                     models.PointStruct(
                         id=str(uuid5(NAMESPACE_URL, identity)),
-                        vector=vector,
+                        vector={
+                            "dense": vector,
+                            "sparse": models.SparseVector(
+                                indices=sparse_vector.indices.tolist(),
+                                values=sparse_vector.values.tolist(),
+                            ),
+                        },
                         payload=record.model_dump(mode="json"),
                     )
                 )
@@ -173,12 +195,27 @@ class LocalSemanticProvider:
             f"Query: {query}"
         )
         vector = (await self.ollama_client.embed([query_text]))[0]
+        sparse_vector = next(iter(self.bm25.query_embed(query)))
 
         response = await self.qdrant_client.query_points(
             collection_name=COLLECTION,
-            query=vector,
+            prefetch=[
+                models.Prefetch(query=vector, using="dense", limit=20),
+                models.Prefetch(
+                    query=models.SparseVector(
+                        indices=sparse_vector.indices.tolist(),
+                        values=sparse_vector.values.tolist(),
+                    ),
+                    using="sparse",
+                    limit=20,
+                ),
+            ],
+            query=models.FusionQuery(fusion=models.Fusion.RRF),
             limit=max(1, min(limit, 8)),
             with_payload=True,
         )
 
-        return [SearchHit.model_validate(point.payload) for point in response.points]
+        return [
+            SearchHit.model_validate(point.payload).model_copy(update={"score": point.score})
+            for point in response.points
+        ]

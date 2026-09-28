@@ -107,6 +107,7 @@ async def build_index(
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     all_records: list[SearchHit] = []
+    sparse_texts: list[str] = []
 
     for number, path in enumerate(paths, start=1):
         relative_path = path.relative_to(root).as_posix()
@@ -188,6 +189,20 @@ async def build_index(
         if hashlib.sha256(path.read_bytes()).hexdigest() != source_hash:
             raise RuntimeError(f"File changed during indexing: {relative_path}")
 
+        lines = text.splitlines(keepends=True)
+        for record in records:
+            code = (
+                text
+                if record.kind == "file"
+                else "".join(lines[record.start_line - 1 : record.end_line])
+            )
+            sparse_texts.append(
+                f"File: {record.path}\n"
+                f"Symbol: {record.name or '(file)'}\n"
+                f"Description: {record.description}\n"
+                f"Source:\n{code}"
+            )
+
         all_records.extend(records)
 
     records_path = root / ".explorer" / "records.jsonl"
@@ -201,7 +216,7 @@ async def build_index(
 
     # Генерация описаний и embeddings разделены на две последовательные
     # фазы, чтобы не переключать модели после каждого метода.
-    await provider.replace(all_records, rebuild=rebuild)
+    await provider.replace(all_records, sparse_texts=sparse_texts, rebuild=rebuild)
 
 
 async def index_project(root: Path, *, rebuild: bool = False, no_cache: bool = False) -> None:
