@@ -220,7 +220,7 @@ async def build_index(
 
 
 async def index_project(root: Path, *, rebuild: bool = False, no_cache: bool = False) -> None:
-    async with httpx.AsyncClient(timeout=httpx.Timeout(180.0, connect=10.0)) as http:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(600.0, connect=10.0)) as http:
         ollama = Ollama(
             http,
             base_url=OLLAMA_URL,

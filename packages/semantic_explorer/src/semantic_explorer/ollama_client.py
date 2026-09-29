@@ -51,7 +51,7 @@ class Ollama:
             "and important side effects. Preserve useful symbol names. "
             "Do not invent business intent or claim completeness from a fragment. "
             "Distinguish uncertainty from facts. "
-            "Write concise English, preferably under 900 characters. "
+            "Write concise English, preferably under 700 characters. "
             "Return JSON with one field: text."
         )
 

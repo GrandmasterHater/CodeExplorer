@@ -12,11 +12,11 @@ from semantic_explorer.indexer import index_project
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Local codebase explorer")
 
-    parser.add_argument("command", choices=["index", "search", "mcp"])
-    parser.add_argument("--project", type=Path)
-    parser.add_argument("--query", default="")
-    parser.add_argument("--rebuild", action="store_true")
-    parser.add_argument("--no-cache", action="store_true")
+    _ = parser.add_argument("command", choices=["index", "search", "mcp"])
+    _ = parser.add_argument("--project", type=Path)
+    _ = parser.add_argument("--query", default="")
+    _ = parser.add_argument("--rebuild", action="store_true")
+    _ = parser.add_argument("--no-cache", action="store_true")
 
     args = parser.parse_args()
 

@@ -9,7 +9,6 @@ import tree_sitter_c_sharp
 import tree_sitter_java
 from tree_sitter import Language, Node, Parser
 
-
 EXCLUDED_DIRS = {
     ".git",
     ".venv",
